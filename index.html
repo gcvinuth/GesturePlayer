@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<title>GestureFlow — Touchless Music Control</title>
+<meta name="description" content="Control your music with hand gestures. No touching required." />
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0A0E12" />
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="GestureFlow" />
+<meta name="mobile-web-app-capable" content="yes" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="scanline" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 3v6l2-2M6 21v-6l2 2M18 3v6l-2-2M18 21v-6l-2 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M11 10.5l2.6 1.5-2.6 1.5z" fill="currentColor"/></svg>
+    </span>
+    <div>
+      <h1>GestureFlow</h1>
+      <p class="tagline">Touchless control for the music you already have</p>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <button class="pill status-pill" id="statusPill" type="button" aria-live="polite">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusLabel">Camera off</span>
+    </button>
+    <button class="btn btn-ghost" id="installBtn" type="button" hidden>Install app</button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- VISION TRACKER -->
+  <section class="panel tracker-panel" aria-labelledby="trackerHeading">
+    <div class="panel-head">
+      <h2 id="trackerHeading">Vision tracker</h2>
+      <span class="chip" id="handsChip">0 hands</span>
+    </div>
+
+    <div class="camera-frame" id="cameraFrame">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="overlay"></canvas>
+
+      <div class="camera-empty" id="cameraEmpty">
+        <button class="scan-target" id="startCameraBtn" type="button">
+          <svg viewBox="0 0 24 24" width="30" height="30"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>
+        </button>
+        <p class="camera-empty-title">Camera is off</p>
+        <p class="camera-empty-sub" id="cameraEmptySub">Turn it on and hold a hand up to start tracking.</p>
+      </div>
+
+      <div class="gesture-toast" id="gestureToast" aria-live="polite"></div>
+    </div>
+
+    <div class="tracker-foot">
+      <button class="btn btn-primary" id="cameraToggleBtn" type="button">Start camera</button>
+      <p class="hint">Join both hands = play / pause · Pinch + slide = volume</p>
+    </div>
+  </section>
+
+  <!-- PLAYER DECK -->
+  <section class="panel deck-panel" aria-labelledby="deckHeading">
+    <div class="panel-head">
+      <h2 id="deckHeading">Player</h2>
+      <div class="viz-switch" role="tablist" aria-label="Visualizer style">
+        <button class="viz-tab is-active" data-viz="bars" type="button" role="tab" aria-selected="true">Bars</button>
+        <button class="viz-tab" data-viz="wave" type="button" role="tab" aria-selected="false">Wave</button>
+      </div>
+    </div>
+
+    <div class="now-playing">
+      <div class="art" id="art" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="28" height="28"><path d="M9 18V5l11-2v13" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="17" cy="16" r="3" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      </div>
+      <div class="track-meta">
+        <p class="track-title" id="trackTitle">No track loaded</p>
+        <p class="track-artist" id="trackArtist">Import audio to get started</p>
+      </div>
+      <button class="icon-btn" id="likeBtn" type="button" aria-pressed="false" aria-label="Like track">
+        <svg viewBox="0 0 24 24" width="19" height="19"><path d="M12 20s-7-4.35-9.5-8.8C.7 7.9 2.3 4.5 5.7 4A5 5 0 0 1 12 7a5 5 0 0 1 6.3-3c3.4.5 5 3.9 3.2 7.2C19 15.65 12 20 12 20z" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      </button>
+    </div>
+
+    <canvas id="visualizer" class="visualizer" height="72"></canvas>
+
+    <div class="seek-row">
+      <span class="time" id="timeCurrent">0:00</span>
+      <input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="Seek" />
+      <span class="time" id="timeTotal">0:00</span>
+    </div>
+
+    <div class="transport">
+      <button class="icon-btn" id="shuffleBtn" type="button" aria-pressed="false" aria-label="Shuffle">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 6h3.5c1.6 0 3 .9 3.7 2.3M21 6h-3.2c-1.6 0-3 .9-3.7 2.3M3 18h3.5c1.6 0 3-.9 3.7-2.3M21 18h-3.2c-1.6 0-3-.9-3.7-2.3M17.5 3.5 21 6l-3.5 2.5M17.5 20.5 21 18l-3.5-2.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="icon-btn" id="prevBtn" type="button" aria-label="Previous track">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 5v14M19 5 8 12l11 7z" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn icon-btn-lg" id="playBtn" type="button" aria-label="Play">
+        <svg id="playIcon" viewBox="0 0 24 24" width="24" height="24"><path d="M7 4l14 8-14 8z" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn" id="nextBtn" type="button" aria-label="Next track">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 5v14M5 5l11 7-11 7z" fill="currentColor"/></svg>
+      </button>
+      <button class="icon-btn" id="repeatBtn" type="button" aria-pressed="false" aria-label="Repeat">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="volume-row">
+      <button class="icon-btn" id="muteBtn" type="button" aria-pressed="false" aria-label="Mute">
+        <svg id="muteIcon" viewBox="0 0 24 24" width="18" height="18"><path d="M4 9v6h4l5 5V4L8 9H4z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+      </button>
+      <input type="range" id="volume" min="0" max="100" value="80" aria-label="Volume" />
+      <span class="volume-value" id="volumeValue">80%</span>
+    </div>
+  </section>
+
+  <!-- PLAYLIST / IMPORT -->
+  <section class="panel playlist-panel" aria-labelledby="playlistHeading">
+    <div class="panel-head">
+      <h2 id="playlistHeading">Your music</h2>
+      <label class="btn btn-accent" for="fileInput">
+        Import audio
+        <input type="file" id="fileInput" accept="audio/*" multiple hidden />
+      </label>
+    </div>
+    <ul class="playlist" id="playlist">
+      <li class="playlist-empty" id="playlistEmpty">Nothing imported yet — add files from your device to build a queue.</li>
+    </ul>
+  </section>
+
+  <!-- GESTURE REFERENCE -->
+  <section class="panel legend-panel" aria-labelledby="legendHeading">
+    <div class="panel-head">
+      <h2 id="legendHeading">Gesture reference</h2>
+      <span class="chip chip-live"><span class="dot dot-live"></span>Live while camera is on</span>
+    </div>
+    <div class="legend-grid">
+      <article class="legend-card" data-action="play">
+        <p class="legend-action">Play / Pause</p>
+        <p class="legend-how">Bring both hands together in front of the camera, like a clap.</p>
+      </article>
+      <article class="legend-card" data-action="volume">
+        <p class="legend-action">Volume</p>
+        <p class="legend-how">Pinch thumb and index finger, then slide up or down.</p>
+      </article>
+      <article class="legend-card" data-action="next">
+        <p class="legend-action">Next track</p>
+        <p class="legend-how">Sweep an open hand quickly from left to right.</p>
+      </article>
+      <article class="legend-card" data-action="prev">
+        <p class="legend-action">Previous track</p>
+        <p class="legend-how">Sweep an open hand quickly from right to left.</p>
+      </article>
+      <article class="legend-card" data-action="mute">
+        <p class="legend-action">Mute / Unmute</p>
+        <p class="legend-how">Hold up a peace sign — index and middle finger extended.</p>
+      </article>
+      <article class="legend-card" data-action="like">
+        <p class="legend-action">Like track</p>
+        <p class="legend-how">Thumbs up, with the rest of the hand closed.</p>
+      </article>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot-note">
+  <p>Video never leaves your device — hand tracking runs locally in the browser. Add GestureFlow to your home screen for a full-screen, app-like experience.</p>
+</footer>
+
+<!-- MediaPipe Hands (loaded from CDN). Detection runs entirely on-device;
+     no video frame is ever uploaded anywhere. -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<script src="app.js"></script>
+</body>
+</html>
